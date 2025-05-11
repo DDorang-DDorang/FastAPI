@@ -1,0 +1,16 @@
+git+https://github.com/openai/whisper.git
+
+# FastAPI 서버 구성
+fastapi
+uvicorn[standard]
+
+# 음성 처리
+torchaudio
+numpy
+
+# Pytorch는 따로 설치
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+
+#sudo apt update
+#sudo apt install ffmpeg libsndfile1 -y
