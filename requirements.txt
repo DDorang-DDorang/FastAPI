@@ -7,12 +7,10 @@ uvicorn[standard]
 # 음성 처리
 torchaudio
 numpy
-
 python-multipart
 
-# Pytorch는 따로 설치
-# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-
-#sudo apt update
-#sudo apt install ffmpeg libsndfile1 -y
+# PyTorch (CUDA 11.8용)
+torch==2.1.0+cu118
+torchvision==0.16.0+cu118
+torchaudio==2.1.0+cu118
+--extra-index-url https://download.pytorch.org/whl/cu118
