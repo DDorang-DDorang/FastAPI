@@ -1,13 +1,13 @@
-git+https://github.com/openai/whisper.git
-
 # FastAPI 서버 구성
 fastapi
 uvicorn[standard]
 
 # 음성 처리
 torchaudio
-numpy
+numpy<2
 python-multipart
+
+git+https://github.com/openai/whisper.git
 
 # PyTorch (CUDA 11.8용)
 torch==2.1.0+cu118
