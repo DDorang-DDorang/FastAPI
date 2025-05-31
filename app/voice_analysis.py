@@ -1,12 +1,9 @@
 import parselmouth
 import numpy as np
-import matplotlib.pyplot as plt
-
-
 
 class SoundAnalyzer:
-    def __init__(self, snd, threshold=60):
-        self.snd = snd
+    def __init__(self, snd_path, threshold=60):
+        self.snd = parselmouth.Sound(snd_path)
         self.threshold = threshold
         self.intensity = self.snd.to_intensity()
         self.pitch = self.snd.to_pitch()
@@ -25,37 +22,28 @@ class SoundAnalyzer:
 
         ratio = avg_db / self.threshold
 
-        if 0.97 <= ratio <= 1.03:
-            grade = "A"
-        elif 0.92 <= ratio <= 1.08:
-            grade = "B"
-        elif 0.85 <= ratio <= 1.15:
-            grade = "C"
-        elif 0.75 <= ratio <= 1.25:
-            grade = "D"
+        intensity_grade = "D"  # Default grade
+        intensity_comment = "N/A"
+
+        if 0.95 <= ratio:
+            intensity_grade = "A"
+            intensity_comment = "적절한 목소리 크기"
+        elif 0.90 <= ratio:
+            intensity_grade = "B"
+            intensity_comment = "조금 작은 목소리"
+        elif 0.85 <= ratio:
+            intensity_grade = "C"
+            intensity_comment = "작은 목소리"
         else:
-            grade = "E"
+            intensity_grade = "D"
+            intensity_comment = "너무 작은 목소리"
 
-        return grade, avg_db
+        return intensity_grade, avg_db, intensity_comment
 
-    def evaluate_syllables_per_second(self):
-        times = self.intensity.xs()
-        values = self.intensity.values[0]
-
-        speech_mask = values > 40
-        speech_durations = np.diff(times)[speech_mask[:-1]]
-        total_speech_time = np.sum(speech_durations)
-
-        pitch_values = self.pitch.selected_array['frequency']
-        pitch_values[pitch_values == 0] = np.nan
-
-        syllable_like = np.count_nonzero(~np.isnan(pitch_values))
-        sps = syllable_like / total_speech_time if total_speech_time > 0 else 0
-
-        return syllable_like, sps
-    
 
     def evaluate_pitch_score(self):
+        # TODO : 좀 더 정교한 피치 분석 및 기준 필요
+
         pitch_values = self.pitch.selected_array['frequency']
         pitch_values = pitch_values[pitch_values > 0]
 
@@ -66,22 +54,27 @@ class SoundAnalyzer:
         upper_bound = q3 + 1.5 * iqr
         filtered_pitch = pitch_values[(pitch_values >= lower_bound) & (pitch_values <= upper_bound)]
 
-        if len(filtered_pitch) == 0:
-            return "E", 0  # 이상치 제거 후 데이터 없음
+        pitch_grade = "D"
+        pitch_comment = "N/A"
+
+        if len(filtered_pitch) == 0:   
+            return pitch_grade, 0, "N/A"
 
         pitch_std = np.std(filtered_pitch)
         pitch_range = np.max(filtered_pitch) - np.min(filtered_pitch)
 
         # 기준 예시 (단위: Hz, 발표 환경에 따라 조절 가능)
         if pitch_std > 50 and pitch_range > 100:
-            grade = "A"  # 다양한 톤, 생동감 있음
+            pitch_grade = "A"
+            pitch_comment = "표현력 우수"
         elif pitch_std > 30 and pitch_range > 70:
-            grade = "B"
+            pitch_grade = "B"
+            pitch_comment = "표현력 적절"
         elif pitch_std > 15 and pitch_range > 40:
-            grade = "C"
-        elif pitch_std > 5 and pitch_range > 20:
-            grade = "D"
+            pitch_grade = "C"
+            pitch_comment = "조금 단조로움"
         else:
-            grade = "E"  # 너무 monotone
-
-        return grade, pitch_std
+            pitch_grade = "D"
+            pitch_comment = "단조로움"
+        
+        return pitch_grade, np.mean(filtered_pitch) if len(filtered_pitch) > 0 else 0, pitch_comment
