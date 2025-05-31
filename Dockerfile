@@ -2,8 +2,11 @@
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
 
 # Python 설치
-RUN apt update && apt install -y python3 python3-pip ffmpeg
-
+RUN apt update && \
+    apt install -y python3 python3-pip git ffmpeg && \
+    ln -sf python3 /usr/bin/python && \
+    ln -sf pip3 /usr/bin/pip
+    
 # pip 최신화
 RUN python3 -m pip install --upgrade pip
 
@@ -22,3 +25,4 @@ COPY ./app ./app
 
 # FastAPI 실행
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
