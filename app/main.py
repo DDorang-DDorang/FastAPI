@@ -8,8 +8,17 @@ from pydub import AudioSegment
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
 from gpt import correct_stt_result, get_chat_response
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 또는 React 도메인
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def compute_pronunciation_score(logprobs, threshold=-1.0):
     filtered = [lp for lp in logprobs if lp > threshold]
@@ -73,7 +82,7 @@ async def transcribe(file: UploadFile = File(...)):
             "wpm_avg": round(wpm, 2),
             "wpm_comment": wpm_comment,
 
-            # 분석 결과 추가 👇
+            # 분석 결과 추가
             "adjusted_script": analysis_result["adjusted_script"],
             "feedback": analysis_result["feedback"],
             "predicted_questions": analysis_result["predicted_questions"]
