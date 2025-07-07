@@ -7,6 +7,7 @@ import os
 from pydub import AudioSegment
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
+from gpt import correct_stt_result, get_chat_response
 
 app = FastAPI()
 
@@ -53,6 +54,11 @@ async def transcribe(file: UploadFile = File(...)):
         intensity_grade, avg_db, intensity_comment = analyzer.evaluate_intensity()
         pitch_grade, avg_pitch, pitch_comment = analyzer.evaluate_pitch_score()
 
+        transcription = all_text.strip()
+
+        corrected_transcription = correct_stt_result(transcription)
+
+        analysis_result = get_chat_response(corrected_transcription)
 
         return JSONResponse(content={
             "transcription": all_text.strip(),
@@ -66,8 +72,11 @@ async def transcribe(file: UploadFile = File(...)):
             "wpm_grade": wpm_grade,
             "wpm_avg": round(wpm, 2),
             "wpm_comment": wpm_comment,
-            # "used_segment_count": used,
-            # "logprob_threshold": round(threshold, 4)
+
+            # 분석 결과 추가 👇
+            "adjusted_script": analysis_result["adjusted_script"],
+            "feedback": analysis_result["feedback"],
+            "predicted_questions": analysis_result["predicted_questions"]
         })
 
     except Exception as e:

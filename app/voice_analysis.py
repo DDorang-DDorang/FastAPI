@@ -17,12 +17,13 @@ class SoundAnalyzer:
         lower_bound = q1 - 1.5 * iqr
         upper_bound = q3 + 1.5 * iqr
 
+        # IQR를 사용하여 이상치 제거
         filtered_values = values[(values >= lower_bound) & (values <= upper_bound)]
         avg_db = np.mean(filtered_values)
 
         ratio = avg_db / self.threshold
 
-        intensity_grade = "D"  # Default grade
+        intensity_grade = "D" 
         intensity_comment = "N/A"
 
         if 0.95 <= ratio:
@@ -43,7 +44,6 @@ class SoundAnalyzer:
 
     def evaluate_pitch_score(self):
         # TODO : 좀 더 정교한 피치 분석 및 기준 필요
-
         pitch_values = self.pitch.selected_array['frequency']
         pitch_values = pitch_values[pitch_values > 0]
 
