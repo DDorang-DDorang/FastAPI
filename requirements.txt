@@ -19,3 +19,11 @@ pydub
 
 # 음성 분석
 praat-parselmouth
+
+# gpt api
+openai
+dotenv
+
+# json
+json
+re

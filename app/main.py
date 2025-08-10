@@ -1,6 +1,7 @@
+import json
 import whisper
 import numpy as np
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 import uuid
 import os
@@ -25,21 +26,26 @@ def compute_pronunciation_score(logprobs, threshold=-1.0):
     score = np.mean([np.exp(lp) for lp in filtered]) if filtered else 0.0
     return score, len(filtered), threshold
 
-#
+
 
 @app.post("/stt")
-async def transcribe(file: UploadFile = File(...)):
-    file_id = str(uuid.uuid4())
-    filename = file.filename
-    ext = os.path.splitext(filename)[1].lower()
-    save_path = f"temp_{file_id}{ext}"
+async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
+    video_id = str(uuid.uuid4())
+    videoname = video.filename
+    ext = os.path.splitext(videoname)[1].lower()
+    save_path = f"temp_{video_id}{ext}"
 
-
+    
+    if metadata is None:
+        target_time = "6:00"
+    else :
+        meta_data = json.loads(metadata)
+        target_time = meta_data.get("target_time")
 
     with open(save_path, "wb") as f:
-        f.write(await file.read())
+        f.write(await video.read())
 
-    wav_path = f"temp_{file_id}.wav"
+    wav_path = f"temp_{video_id}.wav"
 
     if ext == ".mp4":
         audio = AudioSegment.from_file(save_path, format="mp4")
@@ -67,7 +73,7 @@ async def transcribe(file: UploadFile = File(...)):
 
         corrected_transcription = correct_stt_result(transcription)
 
-        analysis_result = get_chat_response(corrected_transcription)
+        analysis_result = get_chat_response(corrected_transcription, target_time=target_time)
 
         return JSONResponse(content={
             "transcription": all_text.strip(),
@@ -83,6 +89,7 @@ async def transcribe(file: UploadFile = File(...)):
             "wpm_comment": wpm_comment,
 
             # 분석 결과 추가
+            "corrected_transcription": corrected_transcription,
             "adjusted_script": analysis_result["adjusted_script"],
             "feedback": analysis_result["feedback"],
             "predicted_questions": analysis_result["predicted_questions"]
