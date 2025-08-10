@@ -23,7 +23,3 @@ praat-parselmouth
 # gpt api
 openai
 dotenv
-
-# json
-json
-re
