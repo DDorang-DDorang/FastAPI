@@ -27,7 +27,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Whisper 모델 미리 다운로드
-RUN python -c "import whisper; whisper.load_model('large')"
+RUN python -c "import whisper; whisper.load_model('medium')"
 
 # 앱 복사
 COPY ./app .

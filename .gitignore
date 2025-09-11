@@ -3,3 +3,5 @@
 /__pycache__
 /sample_voices
 /app/.env
+/train.py
+/test.py

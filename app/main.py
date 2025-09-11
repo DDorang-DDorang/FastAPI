@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 import uuid
 import os
 from pydub import AudioSegment
+from pydub.utils import mediainfo
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
 from gpt import correct_stt_result, get_chat_response
@@ -40,6 +41,7 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
         target_time = "6:00"
     else :
         meta_data = json.loads(metadata)
+
         target_time = meta_data.get("target_time")
 
     with open(save_path, "wb") as f:
@@ -56,6 +58,12 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
 
     try:
+        audio_info = mediainfo(wav_path)
+        duration = float(audio_info["duration"])   # 초 단위 길이
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        current_time = f"{minutes}:{seconds:02d}"
+
         # Whisper 음성 처리
         result = transcribe_audio(wav_path, language="ko")
         segments = result.get("segments", [])
@@ -73,7 +81,7 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
 
         corrected_transcription = correct_stt_result(transcription)
 
-        analysis_result = get_chat_response(corrected_transcription, target_time=target_time)
+        analysis_result = get_chat_response(corrected_transcription, current_time=current_time, target_time=target_time)
 
         return JSONResponse(content={
             "transcription": all_text.strip(),
