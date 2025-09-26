@@ -23,3 +23,8 @@ praat-parselmouth
 # gpt api
 openai
 dotenv
+
+
+# 표정 분석
+fer
+deepface

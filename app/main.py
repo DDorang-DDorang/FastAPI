@@ -3,6 +3,7 @@ import whisper
 import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 import os
 from pydub import AudioSegment
@@ -10,7 +11,8 @@ from pydub.utils import mediainfo
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
 from gpt import correct_stt_result, get_chat_response
-from fastapi.middleware.cors import CORSMiddleware
+from FER import analyze_emotion
+
 
 app = FastAPI()
 
@@ -83,6 +85,8 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
 
         analysis_result = get_chat_response(corrected_transcription, current_time=current_time, target_time=target_time)
 
+        emotion_analysis = analyze_emotion(save_path, frame_skip=120)
+
         return JSONResponse(content={
             "transcription": all_text.strip(),
             "pronunciation_score": round(pronounciation_score, 4),
@@ -100,7 +104,9 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
             "corrected_transcription": corrected_transcription,
             "adjusted_script": analysis_result["adjusted_script"],
             "feedback": analysis_result["feedback"],
-            "predicted_questions": analysis_result["predicted_questions"]
+            "predicted_questions": analysis_result["predicted_questions"],
+            
+            "emotion_analysis": emotion_analysis
         })
 
     except Exception as e:
