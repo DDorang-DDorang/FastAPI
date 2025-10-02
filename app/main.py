@@ -103,7 +103,7 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
             # 분석 결과 추가
             "corrected_transcription": corrected_transcription,
             "adjusted_script": analysis_result["adjusted_script"],
-            "feedback": analysis_result["feedback"],
+            "feedback": analysis_result["feedback"], 
             "predicted_questions": analysis_result["predicted_questions"],
             
             "emotion_analysis": emotion_analysis

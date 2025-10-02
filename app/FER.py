@@ -62,6 +62,6 @@ def analyze_emotion(video_path, frame_skip=120):
 
 # 사용 예시
 if __name__ == "__main__":
-    result = analyze_expression(r"sample_voices\FER_sample_myself_smile.mp4", frame_skip=120)
+    result = analyze_emotion(r"sample_voices\FER_sample_myself_smile.mp4", frame_skip=120)
     print("\n영상 전체 비율:")
     print(f"긍정: {result['positive']:.2f}%, 중립: {result['neutral']:.2f}%, 부정: {result['negative']:.2f}%")

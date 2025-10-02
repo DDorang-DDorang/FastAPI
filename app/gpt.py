@@ -94,6 +94,34 @@ JSON 형식으로 출력 (다른 텍스트 금지):
 {corrected_stt_result}
 """
 
+compare_prompt = """
+당신은 발표 피드백 전문가입니다.  
+사용자가 두 개의 발표 대본을 입력하면, 두 대본을 비교하여 강점, 개선점, 종합 평가를 제공합니다.  
+
+출력은 반드시 아래 JSON 형식을 따르세요.  
+불필요한 텍스트나 설명은 넣지 마세요.  
+
+입력:
+{{
+  "script1": "{script1}",
+  "script2": "{script2}"
+}}
+
+출력 형식 예시:
+{{
+  "strengths_comparison": "두 대본의 강점을 비교한 내용",
+  "improvement_suggestions": "두 대본에 적용할 수 있는 개선 제안",
+  "overall_feedback": "두 대본 전체에 대한 종합 평가"
+}}
+
+평가 기준:
+- 발표 구조(도입, 전개, 결론의 명확성)
+- 논리적 흐름과 설득력
+- 언어 표현의 전문성과 명확성
+- 청중을 고려한 전달 방식
+- 발표 전체의 자연스러움과 완성도
+"""
+
 def get_chat_response(corrected_stt_result, current_time="6:00", target_time="6:00"):
     prompt = analysis_prompt.format(
         corrected_stt_result=corrected_stt_result,
@@ -109,14 +137,38 @@ def get_chat_response(corrected_stt_result, current_time="6:00", target_time="6:
             "feedback": None,
             "predicted_questions": None
         }
+    
+def get_compare_result(script1, script2) :
+    prompt = compare_prompt.format(
+        script1 = script1,
+        script2 = script2
+    )
+    content = call_gpt(prompt, temperature=0)
+    try:
+        return json.loads(content)
+    except (json.JSONDecodeError, KeyError):
+        return {
+            "strengths_comparison": None,
+            "improvement_suggestions": None,
+            "overall_feedback": None
+        }
 
 
-print(stt_example)
-print()
-co_stt = correct_stt_result(stt_example)
-print(co_stt)
-print()
-result = get_chat_response(co_stt, "1:30", "3:00")
-print(result["adjusted_script"])
-print(result["feedback"])
-print(result["predicted_questions"])
+
+if __name__ == "__main__":
+    stt_example = "안녕하세요. 오늘 저는 AI 기술의 발전이 우리의 일상에 어떤 변화를 가져오고 있는지에 대해 이야기해 보려 합니다. 불과 몇 년 전만 해도, 인공지능은 알파거나 로브처럼 특정 한 분야에서만 존재하는 기술로 여유졌습니다. 하지만 지금은 어떨까요? 우리가 매일 사용하는 스마트폰의 음성비서, 유튜브나 넷플릭스의 추천 시스템, 심지어 스마트홈까지 AI는 이미 우리 삶 곳곳에 자연스럽게 스며들어 있습니다. 특히, 채 GPT 같은 생성형 AI는 텍스트 요약, 이메일 작성, 코드 디머깅 등 실질적인 업무에 도와줄 수 있는 도구로 각광받고 있습니다. 많은 회사들이 AI를 업무 효율화에 적극적으로 사용하고 있고, 교육 분야에서도 학생 개인 맞춤형 피드백을 제공한 등 다양한 시도가 이루어지고 있습니다. 하지만 이처럼 편리한 기술 뒤에는 분명히 고민거리도 존재합니다. 개인정보 보호 문제, 일자리 대체에 대한 우려, 그리고 AI의 윤리적 판단 문제 등은 앞으로 우리가 반드시 풀어야 할 과제입니다. 결론적으로 AI는 이제 특별한 기술이 아닌 우리 삶의 일부로 자리 잡았습니다. 중요한 것은 이 기술을 어떻게 활용하고 어떤 기준과 방향성을 가지고 발전시켜 나갈 것인가 하는 점입니다. 이상으로 발표 마치겠습니다. 감사합니다."
+    print(stt_example)
+    print()
+    co_stt = correct_stt_result(stt_example)
+    print(co_stt)
+    print()
+    result = get_chat_response(co_stt, "1:30", "3:00")
+    print(result["adjusted_script"])
+    print(result["feedback"])
+    print(result["predicted_questions"])
+
+
+    compare_result = get_compare_result(co_stt, result['adjusted_script'])
+    print(compare_result['strengths_comparison'])
+    print(compare_result['improvement_suggestions'])
+    print(compare_result['overall_feedback'])
