@@ -172,3 +172,5 @@ if __name__ == "__main__":
     print(compare_result['strengths_comparison'])
     print(compare_result['improvement_suggestions'])
     print(compare_result['overall_feedback'])
+    # 최근 것만 하는 걸로
+    # 구체적으로 피드백, 예시   

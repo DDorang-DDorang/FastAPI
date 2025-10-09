@@ -1,7 +1,7 @@
 import json
 import whisper
 import numpy as np
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
@@ -12,6 +12,7 @@ from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis m
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
 from gpt import correct_stt_result, get_chat_response
 from FER import analyze_emotion
+from typing import Dict
 
 
 app = FastAPI()
@@ -31,25 +32,16 @@ def compute_pronunciation_score(logprobs, threshold=-1.0):
 
 
 
+jobs: Dict[str, dict] = {}
+
+
 @app.post("/stt")
-async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
-    video_id = str(uuid.uuid4())
-    videoname = video.filename
-    ext = os.path.splitext(videoname)[1].lower()
-    save_path = f"temp_{video_id}{ext}"
+async def transcribe(background_tasks: BackgroundTasks, video: UploadFile = File(...), metadata: str = Form(...)):
+    job_id = str(uuid.uuid4())
+    jobs[job_id] = {"status": "processing"}
 
-    
-    if metadata is None:
-        target_time = "6:00"
-    else :
-        meta_data = json.loads(metadata)
-
-        target_time = meta_data.get("target_time")
-
-    with open(save_path, "wb") as f:
-        f.write(await video.read())
-
-    wav_path = f"temp_{video_id}.wav"
+    ext = os.path.splitext(video.filename)[1].lower()
+    save_path = f"temp_{job_id}{os.path.splitext(video.filename)[1]}"
 
     if ext == ".mp4":
         audio = AudioSegment.from_file(save_path, format="mp4")
@@ -59,7 +51,24 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
     else:
         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
 
-    try:
+    with open(save_path, "wb") as f:
+        f.write(await video.read())
+
+    background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
+    return {"job_id": job_id}
+
+def process_audio_job(job_id: str, save_path: str, metadata: str):
+    try :
+        if metadata is None:
+            target_time = "6:00"
+        else :
+            meta_data = json.loads(metadata)
+
+            target_time = meta_data.get("target_time")
+
+        wav_path = f"temp_{job_id}.wav"
+
+    
         audio_info = mediainfo(wav_path)
         duration = float(audio_info["duration"])   # 초 단위 길이
         minutes = int(duration // 60)
@@ -87,33 +96,44 @@ async def transcribe(video: UploadFile = File(...), metadata: str = Form(...)):
 
         emotion_analysis = analyze_emotion(save_path, frame_skip=120)
 
-        return JSONResponse(content={
-            "transcription": all_text.strip(),
-            "pronunciation_score": round(pronounciation_score, 4),
-            "intensity_grade": intensity_grade,
-            "intensity_db": round(avg_db, 2),
-            "intensity_text": intensity_comment,
-            "pitch_grade": pitch_grade,
-            "pitch_avg": round(avg_pitch, 2),
-            "pitch_text": pitch_comment,
-            "wpm_grade": wpm_grade,
-            "wpm_avg": round(wpm, 2),
-            "wpm_comment": wpm_comment,
+        jobs[job_id] = {
+            "status" : "completed",
+            "result" : {
+                "transcription": all_text.strip(),
+                "pronunciation_score": round(pronounciation_score, 4),
+                "intensity_grade": intensity_grade,
+                "intensity_db": round(avg_db, 2),
+                "intensity_text": intensity_comment,
+                "pitch_grade": pitch_grade,
+                "pitch_avg": round(avg_pitch, 2),
+                "pitch_text": pitch_comment,
+                "wpm_grade": wpm_grade,
+                "wpm_avg": round(wpm, 2),
+                "wpm_comment": wpm_comment,
 
-            # 분석 결과 추가
-            "corrected_transcription": corrected_transcription,
-            "adjusted_script": analysis_result["adjusted_script"],
-            "feedback": analysis_result["feedback"], 
-            "predicted_questions": analysis_result["predicted_questions"],
-            
-            "emotion_analysis": emotion_analysis
-        })
+                # 분석 결과 추가
+                "corrected_transcription": corrected_transcription,
+                "adjusted_script": analysis_result["adjusted_script"],
+                "feedback": analysis_result["feedback"], 
+                "predicted_questions": analysis_result["predicted_questions"],
+                
+                "emotion_analysis": emotion_analysis
+            }
+        }
+    
+    except Exception as e :
+        jobs[job_id] = {"status": "error", "error" : str(e)}
 
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
 
     finally:
         if os.path.exists(save_path):
             os.remove(save_path)
         if os.path.exists(wav_path) and wav_path != save_path:
             os.remove(wav_path) 
+
+@app.get("/result/{job_id}")
+def get_result(job_id: str):
+    job = jobs.get(job_id)
+    if not job:
+        return {"status": "not_found"}
+    return job
