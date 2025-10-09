@@ -10,7 +10,7 @@ from pydub import AudioSegment
 from pydub.utils import mediainfo
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
-from gpt import correct_stt_result, get_chat_response
+from gpt import correct_stt_result, get_chat_response, get_compare_result
 from FER import analyze_emotion
 from typing import Dict
 
@@ -33,6 +33,15 @@ def compute_pronunciation_score(logprobs, threshold=-1.0):
 
 
 jobs: Dict[str, dict] = {}
+
+
+@app.post("/compare")
+async def compare_scripts(script1: str = Form(...), script2: str = Form(...)):
+    try:
+        result = get_compare_result(script1, script2)
+        return JSONResponse(content=result)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @app.post("/stt")
