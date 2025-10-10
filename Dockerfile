@@ -17,14 +17,15 @@ RUN apt update && \
     rm get-pip.py
     
 # pip 최신화
-RUN python -m pip install --upgrade pip
+RUN python -m pip install --upgrade pip && \
+    pip install blinker --ignore-installed
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
 # requirements 복사 및 설치
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Whisper 모델 미리 다운로드
 RUN python -c "import whisper; whisper.load_model('medium')"

@@ -2,7 +2,7 @@ import whisper
 import numpy as np
 
 
-model = whisper.load_model("large")
+model = whisper.load_model("medium")
 
 def transcribe_audio(wav_path: str, language: str = "ko") -> dict:
     return model.transcribe(wav_path, language=language, word_timestamps=False)

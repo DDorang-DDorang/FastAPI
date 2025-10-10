@@ -53,15 +53,14 @@ async def transcribe(background_tasks: BackgroundTasks, video: UploadFile = File
     save_path = f"temp_{job_id}{os.path.splitext(video.filename)[1]}"
 
     if ext == ".mp4":
+        with open(save_path, "wb") as f:
+            f.write(await video.read())
         audio = AudioSegment.from_file(save_path, format="mp4")
-        audio.export(wav_path, format="wav")
+        audio.export(f"temp_{job_id}.wav", format="wav")
     elif ext == ".wav":
         wav_path = save_path
     else:
         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
-
-    with open(save_path, "wb") as f:
-        f.write(await video.read())
 
     background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
     return {"job_id": job_id}
@@ -102,7 +101,7 @@ def process_audio_job(job_id: str, save_path: str, metadata: str):
         corrected_transcription = correct_stt_result(transcription)
 
         analysis_result = get_chat_response(corrected_transcription, current_time=current_time, target_time=target_time)
-
+        
         emotion_analysis = analyze_emotion(save_path, frame_skip=120)
 
         jobs[job_id] = {

@@ -28,3 +28,4 @@ dotenv
 # 표정 분석
 fer
 deepface
+moviepy==1.03
