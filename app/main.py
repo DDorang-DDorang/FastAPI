@@ -48,26 +48,26 @@ async def compare_scripts(script1: str = Form(...), script2: str = Form(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.post("/stt")
-async def transcribe(background_tasks: BackgroundTasks, video: UploadFile = File(...), metadata: str = Form(...)):
-    job_id = str(uuid.uuid4())
-    jobs[job_id] = {"status": "processing"}
+# @app.post("/stt")
+# async def transcribe(background_tasks: BackgroundTasks, video: UploadFile = File(...), metadata: str = Form(...)):
+#     job_id = str(uuid.uuid4())
+#     jobs[job_id] = {"status": "processing"}
 
-    ext = os.path.splitext(video.filename)[1].lower()
-    save_path = f"temp_{job_id}{os.path.splitext(video.filename)[1]}"
+#     ext = os.path.splitext(video.filename)[1].lower()
+#     save_path = f"temp_{job_id}{os.path.splitext(video.filename)[1]}"
 
-    if ext == ".mp4":
-        with open(save_path, "wb") as f:
-            f.write(await video.read())
-        audio = AudioSegment.from_file(save_path, format="mp4")
-        audio.export(f"temp_{job_id}.wav", format="wav")
-    elif ext == ".wav":
-        pass
-    else:
-        raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
+#     if ext == ".mp4":
+#         with open(save_path, "wb") as f:
+#             f.write(await video.read())
+#         audio = AudioSegment.from_file(save_path, format="mp4")
+#         audio.export(f"temp_{job_id}.wav", format="wav")
+#     elif ext == ".wav":
+#         pass
+#     else:
+#         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
 
-    background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
-    return {"job_id": job_id}
+#     background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
+#     return {"job_id": job_id}
 
 @app.post("/stt")
 async def transcribe_chunked(
@@ -79,7 +79,10 @@ async def transcribe_chunked(
     original_filename: str = Form(...) 
 ):
     job_id = str(uuid.uuid4())
-    chunk_filename = f"{original_filename}_chunk_{chunk_index}"
+
+    ext = os.path.splitext(video.filename)[1].lower()
+
+    chunk_filename = f"{original_filename}_chunk_{chunk_index}{ext}"
     chunk_path = os.path.join(UPLOAD_DIR, chunk_filename)
 
     with open(chunk_path, "wb") as f:
@@ -92,10 +95,10 @@ async def transcribe_chunked(
     if len(uploaded_chunks) < total_chunks:
         return {"status": "chunk_received", "chunk_index": chunk_index}
 
-    merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}")
+    merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}{ext}")
     with open(merged_path, "wb") as merged:
         for i in range(total_chunks):
-            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}")
+            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}{ext}")
             with open(part_path, "rb") as part:
                 merged.write(part.read())
             os.remove(part_path)  # 임시 조각 삭제
@@ -111,13 +114,13 @@ async def transcribe_chunked(
     elif ext == ".wav":
         pass  # 이미 wav면 그대로 사용
     else:
-        raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
+        raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다. 현재 형식 : " + ext)
 
     jobs[job_id] = {"status": "processing"}
     background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
 
     return {"job_id": job_id, "status": "merged_and_processing"}
-
+    
 def process_audio_job(job_id: str, save_path: str, metadata: str):
     try :
         if metadata is None:
