@@ -68,54 +68,54 @@ async def transcribe(background_tasks: BackgroundTasks, video: UploadFile = File
     background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
     return {"job_id": job_id}
 
-# @app.post("/stt")
-# async def transcribe_chunked(
-#     background_tasks: BackgroundTasks,
-#     video: UploadFile,
-#     metadata: str = Form(...),
-#     chunk_index: int = Form(...),
-#     total_chunks: int = Form(...),
-#     original_filename: str = Form(...) 
-# ):
-#     job_id = str(uuid.uuid4())
-#     chunk_filename = f"{original_filename}_chunk_{chunk_index}"
-#     chunk_path = os.path.join(UPLOAD_DIR, chunk_filename)
+@app.post("/stt")
+async def transcribe_chunked(
+    background_tasks: BackgroundTasks,
+    video: UploadFile,
+    metadata: str = Form(...),
+    chunk_index: int = Form(...),
+    total_chunks: int = Form(...),
+    original_filename: str = Form(...) 
+):
+    job_id = str(uuid.uuid4())
+    chunk_filename = f"{original_filename}_chunk_{chunk_index}"
+    chunk_path = os.path.join(UPLOAD_DIR, chunk_filename)
 
-#     with open(chunk_path, "wb") as f:
-#         f.write(await video.read())
+    with open(chunk_path, "wb") as f:
+        f.write(await video.read())
 
-#     uploaded_chunks = [
-#         name for name in os.listdir(UPLOAD_DIR)
-#         if name.startswith(original_filename + "_chunk_")
-#     ]
-#     if len(uploaded_chunks) < total_chunks:
-#         return {"status": "chunk_received", "chunk_index": chunk_index}
+    uploaded_chunks = [
+        name for name in os.listdir(UPLOAD_DIR)
+        if name.startswith(original_filename + "_chunk_")
+    ]
+    if len(uploaded_chunks) < total_chunks:
+        return {"status": "chunk_received", "chunk_index": chunk_index}
 
-#     merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}")
-#     with open(merged_path, "wb") as merged:
-#         for i in range(total_chunks):
-#             part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}")
-#             with open(part_path, "rb") as part:
-#                 merged.write(part.read())
-#             os.remove(part_path)  # 임시 조각 삭제
+    merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}")
+    with open(merged_path, "wb") as merged:
+        for i in range(total_chunks):
+            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}")
+            with open(part_path, "rb") as part:
+                merged.write(part.read())
+            os.remove(part_path)  # 임시 조각 삭제
 
-#     ext = os.path.splitext(merged_path)[1].lower()
-#     save_path = f"temp_{job_id}{ext}"
+    ext = os.path.splitext(merged_path)[1].lower()
+    save_path = f"temp_{job_id}{ext}"
 
-#     os.rename(merged_path, save_path)
+    os.rename(merged_path, save_path)
 
-#     if ext == ".mp4":
-#         audio = AudioSegment.from_file(save_path, format="mp4")
-#         audio.export(f"temp_{job_id}.wav", format="wav")
-#     elif ext == ".wav":
-#         pass  # 이미 wav면 그대로 사용
-#     else:
-#         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
+    if ext == ".mp4":
+        audio = AudioSegment.from_file(save_path, format="mp4")
+        audio.export(f"temp_{job_id}.wav", format="wav")
+    elif ext == ".wav":
+        pass  # 이미 wav면 그대로 사용
+    else:
+        raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
 
-#     jobs[job_id] = {"status": "processing"}
-#     background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
+    jobs[job_id] = {"status": "processing"}
+    background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
 
-#     return {"job_id": job_id, "status": "merged_and_processing"}
+    return {"job_id": job_id, "status": "merged_and_processing"}
 
 def process_audio_job(job_id: str, save_path: str, metadata: str):
     try :
