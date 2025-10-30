@@ -8,6 +8,7 @@ import uuid
 import os
 from pydub import AudioSegment
 from pydub.utils import mediainfo
+from anxiety.anxiety_score import anxiety_analysis
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
 from gpt import correct_stt_result, get_chat_response, get_compare_result
@@ -154,7 +155,13 @@ def process_audio_job(job_id: str, save_path: str, metadata: str):
 
         analysis_result = get_chat_response(corrected_transcription, current_time=current_time, target_time=target_time)
         
-        emotion_analysis = analyze_emotion(save_path, frame_skip=120)
+        # 표정 분석 (삭제)
+        # emotion_analysis = analyze_emotion(save_path, frame_skip=120)
+
+        # 불안 분석
+        anxiety_grade, final_score, anxiety_series, strong_events_ratio = anxiety_analysis(
+            save_path, wav_path
+        )
 
         jobs[job_id] = {
             "status" : "completed",
@@ -177,7 +184,8 @@ def process_audio_job(job_id: str, save_path: str, metadata: str):
                 "feedback": analysis_result["feedback"], 
                 "predicted_questions": analysis_result["predicted_questions"],
                 
-                "emotion_analysis": emotion_analysis
+                "anxiety_analysis": anxiety_grade,
+                "anxiety_ratio": round(strong_events_ratio, 4),
             }
         }
     
