@@ -12,7 +12,7 @@ from anxiety.anxiety_score import anxiety_analysis
 from voice_analysis import SoundAnalyzer  # Assuming you have a voice_analysis module
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm  # Assuming you have a whisper_utils module
 from gpt import correct_stt_result, get_chat_response, get_compare_result
-from FER import analyze_emotion
+# from FER import analyze_emotion
 from typing import Dict
 
 
@@ -120,7 +120,7 @@ async def transcribe_chunked(
     background_tasks.add_task(process_audio_job, job_id, save_path, metadata)
 
     return {"job_id": job_id, "status": "merged_and_processing"}
-    
+
 def process_audio_job(job_id: str, save_path: str, metadata: str):
     try :
         if metadata is None:
@@ -180,6 +180,8 @@ def process_audio_job(job_id: str, save_path: str, metadata: str):
                 "wpm_grade": wpm_grade,
                 "wpm_avg": round(wpm, 2),
                 "wpm_comment": wpm_comment,
+                "anxiety_analysis": anxiety_grade,
+                "anxiety_ratio": round(strong_events_ratio, 4),
 
                 # 분석 결과 추가
                 "corrected_transcription": corrected_transcription,
@@ -187,8 +189,7 @@ def process_audio_job(job_id: str, save_path: str, metadata: str):
                 "feedback": analysis_result["feedback"], 
                 "predicted_questions": analysis_result["predicted_questions"],
                 
-                "anxiety_analysis": anxiety_grade,
-                "anxiety_ratio": round(strong_events_ratio, 4),
+
             }
         }
     

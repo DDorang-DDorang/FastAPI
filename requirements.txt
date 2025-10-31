@@ -24,8 +24,6 @@ praat-parselmouth
 openai
 dotenv
 
-
-# 표정 분석
-fer
-deepface
-moviepy==1.03
+# 감정 분석 (이미지 처리)
+opencv-python
+mediapipe

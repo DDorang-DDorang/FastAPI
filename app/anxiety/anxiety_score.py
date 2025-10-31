@@ -1,19 +1,14 @@
 import os
 import numpy as np
 from pydub import AudioSegment
-import cv2 # 시각화 함수 사용 시 필요
-
-try:
-    from voice_feature import extract_features_by_window
-    from facial_feature import (
-        extract_visual_features,
-        analyze_blinks_from_ear_series,
-        analyze_head_movement_spikes
-        # , visualize_events_on_video # 시각화 필요 시 주석 해제
-    )
-except ImportError:
-    print("오류: 'test.py' 또는 'blinking_test.py' 파일을 찾을 수 없습니다.")
-    exit()
+# import cv2 # 시각화 함수 사용 시 필요
+from .voice_feature import extract_features_by_window
+from .facial_feature import (
+    extract_visual_features,
+    analyze_blinks_from_ear_series,
+    analyze_head_movement_spikes
+    # , visualize_events_on_video # 시각화 필요 시 주석 해제
+)
 
 
 def extract_audio_pydub(video_path, audio_path):
@@ -162,7 +157,7 @@ def anxiety_analysis(video_file_path, audio_path, window_size=1.0):
 
     try:
         f0_series, jitter_series, shimmer_series = extract_features_by_window(
-            audio_path, window_size=WINDOW_SIZE
+            audio_path, window_size=window_size
         )
 
         # (★수정★) extract_visual_features 호출

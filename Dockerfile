@@ -22,6 +22,7 @@ RUN python -m pip install --upgrade pip && \
 
 # 작업 디렉토리 설정
 WORKDIR /app
+ENV PYTHONPATH="/app"
 
 # requirements 복사 및 설치
 COPY requirements.txt .
