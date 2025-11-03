@@ -60,12 +60,12 @@ def convert_to_wav(file_path: str) -> str:
         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
 
 
-def merge_chunks(original_filename: str, total_chunks: int) -> str:
+def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
     """조각난 파일 합치기"""
-    merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}")
+    merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}{ext}")
     with open(merged_path, "wb") as merged:
         for i in range(total_chunks):
-            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}")
+            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}{ext}")
             with open(part_path, "rb") as part:
                 merged.write(part.read())
             os.remove(part_path)
@@ -95,10 +95,13 @@ async def transcribe(
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "processing"}
 
+
+    ext = os.path.splitext(video.filename)[1].lower()
+
     # ----------------- 파일 처리 -----------------
     if chunk_index is not None and total_chunks is not None and original_filename:
         # chunked upload
-        chunk_filename = f"{original_filename}_chunk_{chunk_index}"
+        chunk_filename = f"{original_filename}_chunk_{chunk_index}{ext}"
         chunk_path = save_upload_file(video, chunk_filename)
         uploaded_chunks = [
             name for name in os.listdir(UPLOAD_DIR) if name.startswith(original_filename + "_chunk_")
@@ -106,10 +109,10 @@ async def transcribe(
         if len(uploaded_chunks) < total_chunks:
             return {"status": "chunk_received", "chunk_index": chunk_index}
 
-        save_path = merge_chunks(original_filename, total_chunks)
+        save_path = merge_chunks(original_filename, total_chunks, ext)
     else:
         # 일반 업로드
-        save_path = save_upload_file(video, f"temp_{job_id}{os.path.splitext(video.filename)[1]}")
+        save_path = save_upload_file(video, f"temp_{job_id}{ext}")
 
     # wav 변환
     wav_path = convert_to_wav(save_path)
