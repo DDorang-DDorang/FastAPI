@@ -16,7 +16,7 @@ from whisper_utils import transcribe_audio, calculate_pronunciation_score, calcu
 from gpt import correct_stt_result, get_chat_response, get_compare_result
 
 app = FastAPI()
-UPLOAD_DIR = "uploads"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app.add_middleware(
@@ -37,13 +37,44 @@ def compute_pronunciation_score(logprobs, threshold=-1.0):
     score = np.mean([np.exp(lp) for lp in filtered]) if filtered else 0.0
     return score, len(filtered), threshold
 
+def get_unique_filepath(base_dir: str, base_name: str, ext: str) -> str:
+    """
+    동일한 파일명이 존재하면 _1, _2, _3 ... 식으로 이름 변경
+    """
+    candidate = os.path.join(base_dir, f"{base_name}{ext}")
+    counter = 1
+    while os.path.exists(candidate):
+        candidate = os.path.join(base_dir, f"{base_name}_{counter}{ext}")
+        counter += 1
+    return candidate
 
-def save_upload_file(upload_file: UploadFile, filename: str) -> str:
-    """업로드 파일 저장"""
-    save_path = os.path.join(UPLOAD_DIR, filename)
+
+def save_upload_file(upload_file: UploadFile, base_name: str) -> str:
+    """
+    파일 저장 (중복 시 이름 자동 변경)
+    """
+    ext = os.path.splitext(upload_file.filename)[1].lower()
+    save_path = get_unique_filepath(UPLOAD_DIR, base_name, ext)
     with open(save_path, "wb") as f:
         f.write(upload_file.file.read())
     return save_path
+
+
+def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
+    """
+    조각난 파일 합치기 (기본 이름: original_filename, 중복 시 _1, _2 등 추가)
+    """
+    base_name = os.path.splitext(original_filename)[0]
+    merged_path = get_unique_filepath(UPLOAD_DIR, base_name, ext)
+
+    with open(merged_path, "wb") as merged:
+        for i in range(total_chunks):
+            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}{ext}")
+            with open(part_path, "rb") as part:
+                merged.write(part.read())
+            os.remove(part_path)
+    return merged_path
+
 
 
 def convert_to_wav(file_path: str) -> str:
@@ -60,16 +91,6 @@ def convert_to_wav(file_path: str) -> str:
         raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
 
 
-def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
-    """조각난 파일 합치기"""
-    merged_path = os.path.join(UPLOAD_DIR, f"merged_{original_filename}{ext}")
-    with open(merged_path, "wb") as merged:
-        for i in range(total_chunks):
-            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}{ext}")
-            with open(part_path, "rb") as part:
-                merged.write(part.read())
-            os.remove(part_path)
-    return merged_path
 
 
 # ----------------- API -----------------
@@ -119,7 +140,7 @@ async def transcribe(
 
     # 백그라운드 처리
     background_tasks.add_task(process_audio_job, job_id, save_path, wav_path, metadata)
-    return {"job_id": job_id, "status": "processing"}
+    return {"job_id": job_id, "status": "processing", "save_path": save_path}
 
 
 # ----------------- 백그라운드 작업 -----------------
@@ -179,7 +200,7 @@ def process_audio_job(job_id: str, save_path: str, wav_path: str, metadata: str)
 
     finally:
         # 파일 정리
-        for path in [save_path, wav_path]:
+        for path in [wav_path]:
             if os.path.exists(path):
                 os.remove(path)
 
