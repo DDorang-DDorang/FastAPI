@@ -46,18 +46,24 @@ def get_unique_filepath(base_dir: str, base_name: str, ext: str) -> str:
     while os.path.exists(candidate):
         candidate = os.path.join(base_dir, f"{base_name}_{counter}{ext}")
         counter += 1
-    return candidate
+    return os.path.abspath(candidate)
 
 
 def save_upload_file(upload_file: UploadFile, base_name: str) -> str:
     """
     파일 저장 (중복 시 이름 자동 변경)
+    base_name에 확장자가 포함되어 있으면 추가하지 않음
     """
-    ext = os.path.splitext(upload_file.filename)[1].lower()
-    save_path = get_unique_filepath(UPLOAD_DIR, base_name, ext)
+    upload_ext = os.path.splitext(upload_file.filename)[1].lower()
+    base_root, base_ext = os.path.splitext(base_name)
+
+    # base_name에 이미 확장자가 있으면 그대로, 없으면 upload_file에서 확장자 사용
+    ext = base_ext if base_ext else upload_ext
+
+    save_path = get_unique_filepath(UPLOAD_DIR, base_root, ext)
     with open(save_path, "wb") as f:
         f.write(upload_file.file.read())
-    return save_path
+    return os.path.abspath(save_path)
 
 
 def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
@@ -73,7 +79,7 @@ def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
             with open(part_path, "rb") as part:
                 merged.write(part.read())
             os.remove(part_path)
-    return merged_path
+    return os.path.abspath(merged_path)
 
 
 
