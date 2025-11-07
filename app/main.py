@@ -32,11 +32,6 @@ jobs: Dict[str, dict] = {}
 
 # ----------------- 유틸 함수 -----------------
 
-def compute_pronunciation_score(logprobs, threshold=-1.0):
-    filtered = [lp for lp in logprobs if lp > threshold]
-    score = np.mean([np.exp(lp) for lp in filtered]) if filtered else 0.0
-    return score, len(filtered), threshold
-
 def get_unique_filepath(base_dir: str, base_name: str, ext: str) -> str:
     """
     동일한 파일명이 존재하면 _1, _2, _3 ... 식으로 이름 변경
@@ -63,6 +58,7 @@ def save_upload_file(upload_file: UploadFile, base_name: str) -> str:
     save_path = get_unique_filepath(UPLOAD_DIR, base_root, ext)
     with open(save_path, "wb") as f:
         f.write(upload_file.file.read())
+    os.chmod(save_path, 0o666)
     return os.path.abspath(save_path)
 
 
@@ -79,6 +75,7 @@ def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
             with open(part_path, "rb") as part:
                 merged.write(part.read())
             os.remove(part_path)
+    os.chmod(merged_path, 0o666)
     return os.path.abspath(merged_path)
 
 
@@ -110,7 +107,7 @@ async def compare_scripts(script1: str = Form(...), script2: str = Form(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-@app.post("/stt")
+@app.post("/analysis")
 async def transcribe(
     background_tasks: BackgroundTasks,
     video: UploadFile = File(...),
@@ -163,7 +160,7 @@ def process_audio_job(job_id: str, save_path: str, wav_path: str, metadata: str)
         segments = result.get("segments", [])
         all_text = result.get("text", "")
 
-        pron_score, used, threshold = calculate_pronunciation_score(segments)
+        pron_score, pron_grade, pron_comment = calculate_pronunciation_score(segments)
         wpm, wpm_grade, wpm_comment = calculate_wpm(segments)
 
         # ----------------- SoundAnalyzer -----------------
@@ -176,13 +173,16 @@ def process_audio_job(job_id: str, save_path: str, wav_path: str, metadata: str)
         analysis_result = get_chat_response(corrected_transcription, current_time="0:00", target_time=target_time)
 
         # ----------------- 불안 분석 -----------------
-        anxiety_grade, final_score, anxiety_series, strong_events_ratio = anxiety_analysis(save_path, wav_path)
+        anxiety_grade, anxiety_comment, final_score, anxiety_series, strong_events_ratio = anxiety_analysis(save_path, wav_path)
 
         jobs[job_id] = {
             "status": "completed",
             "result": {
                 "transcription": all_text.strip(),
-                "pronunciation_score": round(pron_score, 4),
+                "corrected_transcription": corrected_transcription,
+                "pronounciation_grade" : pron_grade, #추가
+                "pronounciation_score": round(pron_score, 4),
+                "pronounciation_text": pron_comment, #추가
                 "intensity_grade": intensity_grade,
                 "intensity_db": round(avg_db, 2),
                 "intensity_text": intensity_comment,
@@ -192,9 +192,9 @@ def process_audio_job(job_id: str, save_path: str, wav_path: str, metadata: str)
                 "wpm_grade": wpm_grade,
                 "wpm_avg": round(wpm, 2),
                 "wpm_comment": wpm_comment,
-                "anxiety_analysis": anxiety_grade,
+                "anxiety_grade": anxiety_grade, # 수정
                 "anxiety_ratio": round(strong_events_ratio, 6),
-                "corrected_transcription": corrected_transcription,
+                "anxiety_comment": anxiety_comment, # 추가
                 "adjusted_script": analysis_result.get("adjusted_script"),
                 "feedback": analysis_result.get("feedback"),
                 "predicted_questions": analysis_result.get("predicted_questions"),

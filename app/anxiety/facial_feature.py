@@ -160,11 +160,6 @@ def analyze_head_movement_spikes(head_movement_per_frame_series, fps, window_siz
     # 반환값 2개로 변경
     return spike_counts_per_window, spike_indices
 
-# --- 이벤트 검증용 시각화 함수 (수정 없음) ---
-def visualize_events_on_video(video_path, blink_peak_indices, head_spike_indices):
-    # ... (이전 코드와 동일) ...
-    pass # 실제 코드는 위에 있음
-
 # --- 메인 실행 블록 (★ 수정됨 ★) ---
 if __name__ == "__main__":
     VIDEO_FILE_PATH = "./sample_voices/FER_sample.mp4"
@@ -188,12 +183,5 @@ if __name__ == "__main__":
             print(f"   > 감지된 머리 움직임 스파이크 수: {len(head_spike_indices)}")
             print("\n--- Head Movement Spikes per Window ---")
             print(head_spikes_per_window) # 윈도우별 횟수 출력
-
-            print("\n4. 이벤트 시각적 검증 시작... (Space: 재개, q: 종료)")
-            visualize_events_on_video(
-                VIDEO_FILE_PATH,
-                blink_peaks,
-                head_spike_indices # 시각화 함수는 여전히 프레임 인덱스 필요
-            )
     else:
         print(f"Error: '{VIDEO_FILE_PATH}' 파일을 찾을 수 없습니다.")

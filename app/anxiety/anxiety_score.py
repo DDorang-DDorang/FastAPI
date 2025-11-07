@@ -91,9 +91,9 @@ def calculate_anxiety_scores(blinks, f0, jitter, shimmer, head_movement, is_audi
     strong_events_count = np.sum(speaking_anxiety_scores >= strong_threshold)
     strong_events_ratio = strong_events_count / len(speaking_anxiety_scores)
 
-    grade = get_anxiety_grade(strong_events_ratio)
+    grade, comment = get_anxiety_grade(strong_events_ratio)
 
-    return grade, final_score_100, anxiety_score_series, strong_events_ratio
+    return grade, comment, final_score_100, anxiety_score_series, strong_events_ratio
 
 
 # --- 3. 불안 등급 변환 함수 ---
@@ -113,19 +113,18 @@ def calculate_anxiety_scores(blinks, f0, jitter, shimmer, head_movement, is_audi
 #         return "A (매우 안정)"
     
 def get_anxiety_grade(density_ratio):
-    """(★수정★) '강한 불안 밀도(비율)'를 기준으로 등급 변환"""
     density_ratio = max(0, min(1.0, density_ratio))
     
     if density_ratio >= 0.30:   # 영상의 30% 이상이 강한 불안(4.5점+)
-        return "E"
+        return "E", "매우 불안"
     elif density_ratio >= 0.20: # 20% 이상
-        return "D"
+        return "D", "불안"
     elif density_ratio >= 0.10: # 10% 이상
-        return "C"
+        return "C", "약간 불안"
     elif density_ratio >= 0.05: # 5% 이상
-        return "B"
+        return "B", "안정"
     else:                       # 5% 미만
-        return "A"
+        return "A", "매우 안정"
     
 def anxiety_analysis(video_file_path, audio_path, window_size=1.0):
     fps_from_video = 30
