@@ -43,7 +43,6 @@ class SoundAnalyzer:
 
 
     def evaluate_pitch_score(self):
-        # TODO : 좀 더 정교한 피치 분석 및 기준 필요
         pitch_values = self.pitch.selected_array['frequency']
         pitch_values = pitch_values[pitch_values > 0]
 
@@ -64,17 +63,17 @@ class SoundAnalyzer:
         pitch_range = np.max(filtered_pitch) - np.min(filtered_pitch)
 
         # 기준 예시 (단위: Hz, 발표 환경에 따라 조절 가능)
-        if pitch_std > 50 and pitch_range > 100:
+        if pitch_std > 40 and pitch_range > 100:
             pitch_grade = "A"
             pitch_comment = "표현력 우수"
-        elif pitch_std > 30 and pitch_range > 70:
+        elif pitch_std > 25 and pitch_range > 70:
             pitch_grade = "B"
             pitch_comment = "표현력 적절"
-        elif pitch_std > 15 and pitch_range > 40:
+        elif pitch_std > 10 and pitch_range > 40:
             pitch_grade = "C"
             pitch_comment = "조금 단조로움"
         else:
             pitch_grade = "D"
             pitch_comment = "단조로움"
-        
-        return pitch_grade, np.mean(filtered_pitch) if len(filtered_pitch) > 0 else 0, pitch_comment
+        print(f"[피치 분석] std: {pitch_std}, range: {pitch_range}, grade: {pitch_grade}")
+        return pitch_grade, pitch_range if len(filtered_pitch) > 0 else 0, pitch_comment

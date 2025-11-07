@@ -44,23 +44,23 @@ def calculate_wpm(segments):
 
 def grade_wpm_korean(wpm):
     wpm_comment = ""
-    if 75 <= wpm <= 85:
+    if 75 <= wpm <= 100:
         wpm_comment = "적절함"
         return "A", wpm_comment  
-    elif 65 <= wpm <= 95:
+    elif 70 <= wpm <= 105:
         if wpm < 75:
             wpm_comment = "조금 느림"
         else:
             wpm_comment = "조금 빠름"
         return "B", wpm_comment
-    elif 55 <= wpm < 65 or 95 < wpm <= 105:
-        if wpm < 55:
+    elif 65 <= wpm <= 110:
+        if wpm < 70:
             wpm_comment = "느림"
         else:
             wpm_comment = "빠름"
         return "C", wpm_comment
     else :
-        if wpm < 45:
+        if wpm < 65:
             wpm_comment = "많이 느림"
         else:
             wpm_comment = "많이 빠름"
