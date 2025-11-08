@@ -19,10 +19,10 @@ def grade_pronounciation_score(score):
     if score >= 0.85:
         pronounciation_comment = "명확하고 자연스러운 발음"
         return "A", pronounciation_comment  
-    elif score >= 0.82:
+    elif score >= 0.81:
         pronounciation_comment = "대체로 명확한 발음"
         return "B", pronounciation_comment  
-    elif score >= 0.79:
+    elif score >= 0.77:
         pronounciation_comment = "전달은 되지만 다소 부정확한 발음"
         return "C", pronounciation_comment  
     else :

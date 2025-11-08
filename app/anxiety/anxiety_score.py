@@ -78,7 +78,7 @@ def calculate_anxiety_scores(blinks, f0, jitter, shimmer, head_movement, is_audi
 
     if len(speaking_anxiety_scores) == 0:
         print("경고: 음성 구간이 감지되지 않았습니다.")
-        return "N/A", 0, anxiety_score_series, 0.0
+        return "N/A", "음성 구간 감지 ㄴ", 0, anxiety_score_series, 0.0
 
     MAX_SCORE = 8.0 if not is_audio_only else 6.0
     average_score = np.mean(speaking_anxiety_scores)
