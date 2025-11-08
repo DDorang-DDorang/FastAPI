@@ -16,13 +16,13 @@ def calculate_pronunciation_score(segments, threshold=-1.0):
 
 def grade_pronounciation_score(score):
     pronounciation_comment = ""
-    if score >= 0.88:
+    if score >= 0.85:
         pronounciation_comment = "명확하고 자연스러운 발음"
         return "A", pronounciation_comment  
-    elif score >= 0.83:
+    elif score >= 0.82:
         pronounciation_comment = "대체로 명확한 발음"
         return "B", pronounciation_comment  
-    elif score >= 0.78:
+    elif score >= 0.79:
         pronounciation_comment = "전달은 되지만 다소 부정확한 발음"
         return "C", pronounciation_comment  
     else :
@@ -59,23 +59,23 @@ def calculate_wpm(segments):
 
 def grade_wpm_korean(wpm):
     wpm_comment = ""
-    if 75 <= wpm <= 115:
+    if 80 <= wpm <= 125:
         wpm_comment = "적절함"
         return "A", wpm_comment  
-    elif 70 <= wpm <= 120:
-        if wpm < 75:
+    elif 75 <= wpm <= 135:
+        if wpm < 80:
             wpm_comment = "조금 느림"
         else:
             wpm_comment = "조금 빠름"
         return "B", wpm_comment
-    elif 65 <= wpm <= 125:
-        if wpm < 70:
+    elif 70 <= wpm <= 145:
+        if wpm < 75:
             wpm_comment = "느림"
         else:
             wpm_comment = "빠름"
         return "C", wpm_comment
     else :
-        if wpm < 65:
+        if wpm < 7:
             wpm_comment = "많이 느림"
         else:
             wpm_comment = "많이 빠름"
