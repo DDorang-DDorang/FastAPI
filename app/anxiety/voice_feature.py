@@ -37,7 +37,7 @@ def extract_features_by_window(audio_path, window_size=1.0):
         end = start + window_size
         segment = snd.extract_part(from_time=start, to_time=end)
         
-        if segment.get_intensity() < 50:
+        if segment.get_intensity() < 20:
             f0_series.append(0.0)
             jitter_series.append(0.0)
             shimmer_series.append(0.0)
