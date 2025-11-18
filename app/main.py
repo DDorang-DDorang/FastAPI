@@ -122,7 +122,7 @@ async def transcribe(
 
     ext = os.path.splitext(video.filename)[1].lower()
 
-    # ----------------- 파일 처리 -----------------
+    # 청크 병합
     if chunk_index is not None and total_chunks is not None and original_filename:
         # chunked upload
         chunk_filename = f"{original_filename}_chunk_{chunk_index}{ext}"
@@ -141,7 +141,7 @@ async def transcribe(
     # wav 변환
     wav_path = convert_to_wav(save_path)
 
-    # 백그라운드 처리
+    # 백그라운드 분석 작업 추가
     background_tasks.add_task(process_audio_job, job_id, save_path, wav_path, metadata)
     return {"job_id": job_id, "status": "processing", "save_path": save_path}
 

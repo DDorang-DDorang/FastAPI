@@ -131,10 +131,12 @@ def anxiety_analysis(video_file_path, audio_path, window_size=1.0):
     is_audio_only = video_file_path.lower().endswith(".wav")
 
     try:
+        # --- 1. 음성 특징 추출 ---
         f0_series, jitter_series, shimmer_series = extract_features_by_window(
             audio_path, window_size=window_size
         )
 
+        # --- 2. 시각 특징 추출 ---
         if not is_audio_only:
             ear_series, head_movement_per_frame, fps_from_video = extract_visual_features(video_file_path)
             blink_series, _, _ = analyze_blinks_from_ear_series(ear_series, fps_from_video, window_size=window_size)
@@ -144,6 +146,8 @@ def anxiety_analysis(video_file_path, audio_path, window_size=1.0):
             head_spikes_series = np.zeros(len(f0_series))
 
         min_len = min(len(f0_series), len(blink_series), len(head_spikes_series))
+
+        # --- 3. 불안 점수 측정 ---
         result = calculate_anxiety_scores(
             blink_series[:min_len],
             f0_series[:min_len],
