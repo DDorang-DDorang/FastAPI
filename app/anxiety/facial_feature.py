@@ -63,14 +63,19 @@ def calculate_ear(face_landmarks, frame_shape):
     return ear
 
 # --- 시각 특징 추출 함수 ---
-def extract_visual_features(video_path):
+def extract_visual_features(video_path: str):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened(): return None, None, 0
     fps = cap.get(cv2.CAP_PROP_FPS)
     if fps == 0: fps = 30
     ear_series = []
     head_movement_per_frame = []
-    with mp_face_mesh.FaceMesh(...) as face_mesh: # 설정 생략
+    with mp_face_mesh.FaceMesh(
+        static_image_mode=False,
+        max_num_faces=1,
+        refine_landmarks=True,
+        min_detection_confidence=0.5
+    ) as face_mesh:
         last_good_ear = 0.3
         prev_nose_tip = None
         while cap.isOpened():
@@ -97,8 +102,8 @@ def extract_visual_features(video_path):
     cap.release()
     return np.array(ear_series), np.array(head_movement_per_frame), fps
 
-# --- (★ 수정됨) 깜빡임 분석 함수 ---
-def analyze_blinks_from_ear_series(ear_series, fps, window_size=1.0): # window_size 추가
+# --- 깜빡임 분석 함수 ---
+def analyze_blinks_from_ear_series(ear_series: np.ndarray, fps: float, window_size: float = 1.0):
     """EAR 시계열에서 깜빡임 프레임 인덱스 + 윈도우별 횟수 찾기"""
     PROMINENCE_THRESHOLD = 0.05
     min_width_frames = int(0.05 * fps)
@@ -126,8 +131,8 @@ def analyze_blinks_from_ear_series(ear_series, fps, window_size=1.0): # window_s
     # 반환값 3개로 변경
     return blink_counts_per_window, peaks, properties
 
-# --- (★ 수정됨) 머리 움직임 스파이크 분석 함수 ---
-def analyze_head_movement_spikes(head_movement_per_frame_series, fps, window_size=1.0): # window_size 추가
+# --- 머리 움직임 스파이크 분석 함수 ---
+def analyze_head_movement_spikes(head_movement_per_frame_series: np.ndarray, fps: float, window_size: float = 1.0):
     """프레임별 Head Movement 스파이크 프레임 인덱스 + 윈도우별 횟수 찾기"""
     HEAD_MOVEMENT_PERCENTILE = 90
     MIN_SPIKE_DISTANCE_FRAMES = int(0.3 * fps)
@@ -140,7 +145,6 @@ def analyze_head_movement_spikes(head_movement_per_frame_series, fps, window_siz
         return np.zeros(num_windows, dtype=int), np.array([]) # 빈 횟수 배열, 빈 인덱스 배열
 
     movement_threshold = np.percentile(valid_movement, HEAD_MOVEMENT_PERCENTILE)
-    print(f"   > 머리 움직임 임계값 (상위 10%): {movement_threshold:.2f} pixels/frame")
     spike_indices, _ = find_peaks(
         head_movement_per_frame_series, height=movement_threshold, distance=MIN_SPIKE_DISTANCE_FRAMES
     )
@@ -160,7 +164,7 @@ def analyze_head_movement_spikes(head_movement_per_frame_series, fps, window_siz
     # 반환값 2개로 변경
     return spike_counts_per_window, spike_indices
 
-# --- 메인 실행 블록 (★ 수정됨 ★) ---
+# --- 메인 실행 블록 ---
 if __name__ == "__main__":
     VIDEO_FILE_PATH = "./sample_voices/FER_sample.mp4"
     WINDOW_SIZE = 1.0 # 집계 단위 (이제 분석 함수에 전달됨)
@@ -171,14 +175,14 @@ if __name__ == "__main__":
 
         if ear_series is not None and head_movement_per_frame is not None:
             print("2. 눈깜빡임 분석 중...")
-            # (★ 수정 ★) 윈도우별 횟수 배열 받기
+            # 윈도우별 횟수 배열 받기
             blinks_per_window, blink_peaks, _ = analyze_blinks_from_ear_series(ear_series, fps, window_size=WINDOW_SIZE)
             print(f"   > 감지된 깜빡임 수: {len(blink_peaks)}")
             print("\n--- Blink Counts per Window ---")
             print(blinks_per_window) # 윈도우별 횟수 출력
 
             print("\n3. 머리 움직임 스파이크 분석 중...")
-            # (★ 수정 ★) 윈도우별 횟수 배열 받기
+            # 윈도우별 횟수 배열 받기
             head_spikes_per_window, head_spike_indices = analyze_head_movement_spikes(head_movement_per_frame, fps, window_size=WINDOW_SIZE)
             print(f"   > 감지된 머리 움직임 스파이크 수: {len(head_spike_indices)}")
             print("\n--- Head Movement Spikes per Window ---")

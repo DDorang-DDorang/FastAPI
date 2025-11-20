@@ -1,5 +1,5 @@
 import parselmouth
-from parselmouth.praat import call # ★ 'call' 함수를 임포트해야 합니다 ★
+from parselmouth.praat import call
 import numpy as np
 import os
 
@@ -11,7 +11,7 @@ PITCH_CEILING = 500.0
 SHORTEST_PERIOD = 1.0 / PITCH_CEILING  # (1 / 500Hz)
 LONGEST_PERIOD = 1.0 / PITCH_FLOOR     # (1 / 75Hz)
 
-def extract_features_by_window(audio_path, window_size=1.0):
+def extract_features_by_window(audio_path: str, window_size: float = 1.0):
     """
     오디오 파일을 window_size(초) 단위로 분할하여
     각 구간의 평균 F0, Jitter(local), Shimmer(local)를 추출합니다.

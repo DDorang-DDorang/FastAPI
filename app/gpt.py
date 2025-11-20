@@ -43,6 +43,7 @@ stt_edit_prompt = """
 """
 
 def correct_stt_result(stt_result: str) -> str:
+    """STT 결과를 최소한의 교정만 수행하여 수정"""
     prompt = stt_edit_prompt.format(stt_result=stt_result)
     content = call_gpt(prompt, temperature=0)
     try:
@@ -130,7 +131,8 @@ compare_prompt = """
 - 전체적인 완성도와 전문성
 """
 
-def get_chat_response(corrected_stt_result, current_time="6:00", target_time="6:00"):
+def get_chat_response(corrected_stt_result: str, current_time: str = "0:00", target_time: str = "6:00"):
+    """교정된 STT 결과를 기반으로 발표 분석 및 피드백 제공"""
     prompt = analysis_prompt.format(
         corrected_stt_result=corrected_stt_result,
         current_time=current_time,
@@ -146,11 +148,9 @@ def get_chat_response(corrected_stt_result, current_time="6:00", target_time="6:
             "predicted_questions": None
         }
     
-def get_compare_result(script1, script2) :
-    prompt = compare_prompt.format(
-        script1 = script1,
-        script2 = script2
-    )
+def get_compare_result(script1: str, script2: str):
+    """두 발표 대본을 비교하여 피드백 제공"""
+    prompt = compare_prompt.format(script1=script1, script2=script2)
     content = call_gpt(prompt, temperature=0)
     try:
         return json.loads(content)

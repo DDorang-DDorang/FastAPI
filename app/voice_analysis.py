@@ -23,9 +23,6 @@ class SoundAnalyzer:
 
         ratio = avg_db / self.threshold
 
-        intensity_grade = "D" 
-        intensity_comment = "N/A"
-
         if 0.95 <= ratio:
             intensity_grade = "A"
             intensity_comment = "적절한 목소리 크기"
@@ -53,11 +50,8 @@ class SoundAnalyzer:
         upper_bound = q3 + 1.5 * iqr
         filtered_pitch = pitch_values[(pitch_values >= lower_bound) & (pitch_values <= upper_bound)]
 
-        pitch_grade = "D"
-        pitch_comment = "N/A"
-
-        if len(filtered_pitch) == 0:   
-            return pitch_grade, 0, "N/A"
+        if len(filtered_pitch) == 0:
+            return "D", 0, "N/A"
 
         pitch_std = np.std(filtered_pitch)
         pitch_range = np.max(filtered_pitch) - np.min(filtered_pitch)
@@ -75,5 +69,6 @@ class SoundAnalyzer:
         else:
             pitch_grade = "D"
             pitch_comment = "단조로움"
-        print(f"[피치 분석] std: {pitch_std}, range: {pitch_range}, grade: {pitch_grade}")
-        return pitch_grade, pitch_range if len(filtered_pitch) > 0 else 0, pitch_comment
+        
+        avg_pitch = np.mean(filtered_pitch) if len(filtered_pitch) > 0 else 0
+        return pitch_grade, avg_pitch, pitch_comment

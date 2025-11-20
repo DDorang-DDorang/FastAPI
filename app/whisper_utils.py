@@ -8,26 +8,23 @@ def transcribe_audio(wav_path: str, language: str = "ko") -> dict:
     return model.transcribe(wav_path, language=language, word_timestamps=False)
 
 def calculate_pronunciation_score(segments, threshold=-1.0):
+    """Whisper segments 기반 발음 점수 계산"""
     logprobs = [seg["avg_logprob"] for seg in segments if "avg_logprob" in seg]
     filtered = [lp for lp in logprobs if lp > threshold]
     score = np.mean([np.exp(lp) for lp in filtered]) if filtered else 0.0
-    grade, comment = grade_pronounciation_score(score)
+    grade, comment = grade_pronunciation_score(score)
     return score, grade, comment
 
-def grade_pronounciation_score(score):
-    pronounciation_comment = ""
+def grade_pronunciation_score(score):
+    """발음 점수를 등급으로 변환"""
     if score >= 0.85:
-        pronounciation_comment = "명확하고 자연스러운 발음"
-        return "A", pronounciation_comment  
+        return "A", "명확하고 자연스러운 발음"
     elif score >= 0.81:
-        pronounciation_comment = "대체로 명확한 발음"
-        return "B", pronounciation_comment  
+        return "B", "대체로 명확한 발음"
     elif score >= 0.77:
-        pronounciation_comment = "전달은 되지만 다소 부정확한 발음"
-        return "C", pronounciation_comment  
-    else :
-        pronounciation_comment = "발음이 불분명하고 전달 어려움"
-        return "D", pronounciation_comment  
+        return "C", "전달은 되지만 다소 부정확한 발음"
+    else:
+        return "D", "발음이 불분명하고 전달 어려움"  
 
 def calculate_wpm(segments):
     """
@@ -58,25 +55,15 @@ def calculate_wpm(segments):
 
 
 def grade_wpm_korean(wpm):
-    wpm_comment = ""
+    """WPM 점수를 등급으로 변환"""
     if 80 <= wpm <= 125:
-        wpm_comment = "적절함"
-        return "A", wpm_comment  
+        return "A", "적절함"
     elif 75 <= wpm <= 135:
-        if wpm < 80:
-            wpm_comment = "조금 느림"
-        else:
-            wpm_comment = "조금 빠름"
-        return "B", wpm_comment
+        comment = "조금 느림" if wpm < 80 else "조금 빠름"
+        return "B", comment
     elif 70 <= wpm <= 145:
-        if wpm < 75:
-            wpm_comment = "느림"
-        else:
-            wpm_comment = "빠름"
-        return "C", wpm_comment
-    else :
-        if wpm < 7:
-            wpm_comment = "많이 느림"
-        else:
-            wpm_comment = "많이 빠름"
-        return "D", wpm_comment
+        comment = "느림" if wpm < 75 else "빠름"
+        return "C", comment
+    else:
+        comment = "많이 느림" if wpm < 70 else "많이 빠름"
+        return "D", comment

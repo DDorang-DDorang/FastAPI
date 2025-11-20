@@ -3,20 +3,18 @@ import os
 import uuid
 from typing import Dict
 
-import numpy as np
 from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydub import AudioSegment
-from pydub.utils import mediainfo
 
 from anxiety.anxiety_score import anxiety_analysis
+from config import UPLOAD_DIR, DEFAULT_TARGET_TIME
+from gpt import correct_stt_result, get_chat_response, get_compare_result
+from utils.file_handler import save_upload_file, merge_chunks, convert_to_wav
 from voice_analysis import SoundAnalyzer
 from whisper_utils import transcribe_audio, calculate_pronunciation_score, calculate_wpm
-from gpt import correct_stt_result, get_chat_response, get_compare_result
 
 app = FastAPI()
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app.add_middleware(
@@ -28,72 +26,6 @@ app.add_middleware(
 )
 
 jobs: Dict[str, dict] = {}
-
-
-# ----------------- 유틸 함수 -----------------
-
-def get_unique_filepath(base_dir: str, base_name: str, ext: str) -> str:
-    """
-    동일한 파일명이 존재하면 _1, _2, _3 ... 식으로 이름 변경
-    """
-    candidate = os.path.join(base_dir, f"{base_name}{ext}")
-    counter = 1
-    while os.path.exists(candidate):
-        candidate = os.path.join(base_dir, f"{base_name}_{counter}{ext}")
-        counter += 1
-    return os.path.abspath(candidate)
-
-
-def save_upload_file(upload_file: UploadFile, base_name: str) -> str:
-    """
-    파일 저장 (중복 시 이름 자동 변경)
-    base_name에 확장자가 포함되어 있으면 추가하지 않음
-    """
-    upload_ext = os.path.splitext(upload_file.filename)[1].lower()
-    base_root, base_ext = os.path.splitext(base_name)
-
-    # base_name에 이미 확장자가 있으면 그대로, 없으면 upload_file에서 확장자 사용
-    ext = base_ext if base_ext else upload_ext
-
-    save_path = get_unique_filepath(UPLOAD_DIR, base_root, ext)
-    with open(save_path, "wb") as f:
-        f.write(upload_file.file.read())
-    os.chmod(save_path, 0o666)
-    return os.path.abspath(save_path)
-
-
-def merge_chunks(original_filename: str, total_chunks: int, ext: str) -> str:
-    """
-    조각난 파일 합치기 (기본 이름: original_filename, 중복 시 _1, _2 등 추가)
-    """
-    base_name = os.path.splitext(original_filename)[0]
-    merged_path = get_unique_filepath(UPLOAD_DIR, base_name, ext)
-
-    with open(merged_path, "wb") as merged:
-        for i in range(total_chunks):
-            part_path = os.path.join(UPLOAD_DIR, f"{original_filename}_chunk_{i}{ext}")
-            with open(part_path, "rb") as part:
-                merged.write(part.read())
-            os.remove(part_path)
-    os.chmod(merged_path, 0o666)
-    return os.path.abspath(merged_path)
-
-
-
-def convert_to_wav(file_path: str) -> str:
-    """mp4 -> wav 변환, wav는 그대로 반환"""
-    ext = os.path.splitext(file_path)[1].lower()
-    if ext == ".mp4":
-        wav_path = file_path.rsplit(".", 1)[0] + ".wav"
-        audio = AudioSegment.from_file(file_path, format="mp4")
-        audio.export(wav_path, format="wav")
-        return wav_path
-    elif ext == ".wav":
-        return file_path
-    else:
-        raise ValueError("지원되지 않는 파일 형식입니다. wav 또는 mp4만 허용됩니다.")
-
-
 
 
 # ----------------- API -----------------
@@ -126,17 +58,17 @@ async def transcribe(
     if chunk_index is not None and total_chunks is not None and original_filename:
         # chunked upload
         chunk_filename = f"{original_filename}_chunk_{chunk_index}{ext}"
-        chunk_path = save_upload_file(video, chunk_filename)
+        save_upload_file(video, chunk_filename, UPLOAD_DIR)
         uploaded_chunks = [
             name for name in os.listdir(UPLOAD_DIR) if name.startswith(original_filename + "_chunk_")
         ]
         if len(uploaded_chunks) < total_chunks:
             return {"status": "chunk_received", "chunk_index": chunk_index}
 
-        save_path = merge_chunks(original_filename, total_chunks, ext)
+        save_path = merge_chunks(original_filename, total_chunks, ext, UPLOAD_DIR)
     else:
         # 일반 업로드
-        save_path = save_upload_file(video, f"temp_{job_id}{ext}")
+        save_path = save_upload_file(video, f"temp_{job_id}{ext}", UPLOAD_DIR)
 
     # wav 변환
     wav_path = convert_to_wav(save_path)
@@ -150,10 +82,10 @@ async def transcribe(
 
 def process_audio_job(job_id: str, save_path: str, wav_path: str, metadata: str):
     try:
-        target_time = "6:00"
+        target_time = DEFAULT_TARGET_TIME
         if metadata:
             meta_data = json.loads(metadata)
-            target_time = meta_data.get("target_time", "6:00")
+            target_time = meta_data.get("target_time", DEFAULT_TARGET_TIME)
 
         # ----------------- Whisper -----------------
         result = transcribe_audio(wav_path, language="ko")
@@ -192,9 +124,9 @@ def process_audio_job(job_id: str, save_path: str, wav_path: str, metadata: str)
                 "wpm_grade": wpm_grade,
                 "wpm_avg": round(wpm, 2),
                 "wpm_comment": wpm_comment,
-                "anxiety_grade": anxiety_grade, # 수정
+                "anxiety_grade": anxiety_grade,
                 "anxiety_ratio": round(strong_events_ratio, 6),
-                "anxiety_comment": anxiety_comment, # 추가
+                "anxiety_comment": anxiety_comment,
                 "adjusted_script": analysis_result.get("adjusted_script"),
                 "feedback": analysis_result.get("feedback"),
                 "predicted_questions": analysis_result.get("predicted_questions"),
